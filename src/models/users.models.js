@@ -1,6 +1,7 @@
 import mongoose, { Schema } from "mongoose";
 import bcrypt from "bcrypt";
-import  jwt  from "jsonwebtoken";
+import jsonwebtoken from "jsonwebtoken";
+const jwt = jsonwebtoken;
 const userSchema = new mongoose.Schema(
   {
     name: {
@@ -40,8 +41,8 @@ userSchema.pre("save", async function (next) {
 userSchema.methods.isPasswordCorrect = async function (password) {
   return await bcrypt.compare(password, this.password);
 };
-userSchema.methods.generateAccessToken = function () {
-  return jwt.sign(
+userSchema.methods.generateAccessToken =  function () {
+  return  jwt.sign(
     {
       id: this._id,
       name: this.name,
@@ -49,7 +50,7 @@ userSchema.methods.generateAccessToken = function () {
     },
     process.env.ACCESS_TOKEN_SECRET,
     {
-      expiresIn: process.env.ACCESS_TOKEN_EXPIRY,
+      expiresIn: process.env.ACCESS_TOKEN_EXPIRY
     }
   );
 };
@@ -61,9 +62,15 @@ userSchema.methods.generateRefreshToken = function () {
     },
     process.env.REFRESH_TOKEN_SECRET,
     {
-      expiresIn: process.env.REFRESH_TOKEN_EXPIRY,
+      expiresIn: process.env.REFRESH_TOKEN_EXPIRY
     }
   );
 };
 
 export const User = mongoose.model("User", userSchema);
+
+
+
+
+
+
