@@ -5,26 +5,28 @@ const jwt = jsonwebtoken;
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asynchandler.js";
-
+import { uploadonCloudinary } from "../utils/cloudinary.js";
+import { Item } from "../models/Items.models.js";
+import {io} from "../socket.js"
 const options = {
   httpOnly: true,
-  secure: true // secure only in production
+  secure: true, // secure only in production
 };
 
 // Generate tokens
 const generateAcessAndRefreshTokens = async (userId) => {
   try {
     const user = await User.findById(userId);
-      if(!user){
-        throw new ApiError(401,'unauthorized user');
-      }
+    if (!user) {
+      throw new ApiError(401, "unauthorized user");
+    }
     // console.log(user.toObject());
 
     const accessToken = user.generateAccessToken();
-    console.log("error for this" ,accessToken);
+    console.log("error for this", accessToken);
     const refreshToken = user.generateRefreshToken();
     //console.log(accessToken);
-     user.refreshToken = refreshToken;
+    user.refreshToken = refreshToken;
     await user.save({ validateBeforeSave: false });
 
     return { accessToken, refreshToken };
@@ -127,9 +129,6 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
       throw new ApiError(401, "Unauthorized user");
     }
 
-   
-
-  
     const decoded = jwt.verify(incomingToken, process.env.REFRESH_TOKEN_SECRET);
     if (!decoded) {
       throw new ApiError(401, "Unauthorized user");
@@ -141,25 +140,18 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     }
 
     // Generate new tokens
-    const { accessToken} =
-      await generateAcessAndRefreshTokens(user._id);
-
+    const { accessToken } = await generateAcessAndRefreshTokens(user._id);
 
     // Send new tokens as cookies
     // console.log(accessToken)
     res
       .status(200)
       .cookie("accessToken", accessToken, options)
-      .json({ success: true});
+      .json({ success: true });
   } catch (error) {
-    throw new ApiError(
-      401,
-       "Refreshed AccessToken cannot be generated"
-    );
+    throw new ApiError(401, "Refreshed AccessToken cannot be generated");
   }
 });
-
-
 
 const logoutUser = asyncHandler(async (req, res) => {
   await User.findByIdAndUpdate(
@@ -180,9 +172,118 @@ const logoutUser = asyncHandler(async (req, res) => {
   return res
     .status(200)
     .clearCookie("accessToken", options)
-    .clearCookie("refreshToken",options)
+    .clearCookie("refreshToken", options)
     .json(new ApiResponse(200, {}, "User logged out successfully"));
 });
 
+const postItem = asyncHandler(async (req, res) => {
+  const user = req.user;
+  const images = req.files?.ImageTrackList || [];
 
-export { signUpUser, loginUser,refreshAccessToken,logoutUser };
+  // If no images uploaded
+  if (!images.length) {
+    throw new ApiError(400, "At least one image is required");
+  }
+
+  // Extract paths
+  const imagesPath = images.map((file) => file?.path || null);
+
+  // Upload to Cloudinary
+  const imagesUrl = [];
+  for (const localpath of imagesPath) {
+    if (localpath) {
+      console.log(localpath);
+      const url = await uploadonCloudinary(localpath);
+      imagesUrl.push(url.url);
+    }
+  }
+
+  if (!imagesUrl.length) {
+    throw new ApiError(400, "At least one image is required");
+  }
+
+  const {
+    itemName,
+    category,
+    locationFound,
+    dateFound,
+    status,
+    name,
+    email,
+    phone,
+    type,
+    description,
+  } = req.body;
+
+  // Manual validation with ApiError
+  if (!itemName || typeof itemName !== "string") {
+    throw new ApiError(400, "Item name is required and must be a string");
+  }
+
+  if (!category || typeof category !== "string") {
+    throw new ApiError(400, "Category is required and must be a string");
+  }
+
+  if (!locationFound || typeof locationFound !== "string") {
+    throw new ApiError(400, "Location is required and must be a string");
+  }
+
+if (
+  !dateFound ||
+  !/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(dateFound)
+) {
+  throw new ApiError(400, "Date is required and must be valid (YYYY-MM-DD)");
+}
+
+
+  if (!status || !["Available", "Claimed"].includes(status)) {
+    throw new ApiError(400, "Status must be either 'Available' or 'Claimed'");
+  }
+
+  if (!type || !["Found", "Lost"].includes(type)) {
+    throw new ApiError(400, "Type must be either 'Found' or 'Lost'");
+  }
+
+  if (!name || typeof name !== "string") {
+    throw new ApiError(400, "Name is required and must be a string");
+  }
+
+  if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+    throw new ApiError(400, "Valid email is required");
+  }
+
+  if (!phone || !/^\d{10,15}$/.test(phone)) {
+    throw new ApiError(400, "Valid phone number is required");
+  }
+
+  if (description && typeof description !== "string") {
+    throw new ApiError(400, "Description must be a string");
+  }
+
+  // now insert all these thngs in item schema and at last make io.emit for real time update
+
+  const createdItem = await Item.create({
+    itemName,
+    description,
+    category,
+    type,
+    dateFound,
+    images: imagesUrl,
+    reportedBy: req.user._id,
+    name,
+    email,
+    phone,
+    status,
+    location:locationFound
+  });
+
+     if (!createdItem) {
+  throw new ApiError(500, "Failed to create item");
+     }
+       io.emit("newItemPosted", createdItem);
+
+      res.status(201).json(new ApiResponse(201,createdItem,'item has been injected in database'));
+
+});
+
+export { signUpUser, loginUser, refreshAccessToken, logoutUser, postItem };
