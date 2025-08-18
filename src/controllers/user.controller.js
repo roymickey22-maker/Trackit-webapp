@@ -120,4 +120,69 @@ const loginUser = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, loggedInUser, "User logged in successfully"));
 });
 
-export { signUpUser, loginUser };
+const refreshAccessToken = asyncHandler(async (req, res) => {
+  try {
+    const incomingToken = req.cookies?.refreshToken;
+    if (!incomingToken) {
+      throw new ApiError(401, "Unauthorized user");
+    }
+
+   
+
+  
+    const decoded = jwt.verify(incomingToken, process.env.REFRESH_TOKEN_SECRET);
+    if (!decoded) {
+      throw new ApiError(401, "Unauthorized user");
+    }
+
+    const user = await User.findById(decoded?.id);
+    if (!user) {
+      throw new ApiError(401, "Unauthorized user");
+    }
+
+    // Generate new tokens
+    const { accessToken} =
+      await generateAcessAndRefreshTokens(user._id);
+
+
+    // Send new tokens as cookies
+    // console.log(accessToken)
+    res
+      .status(200)
+      .cookie("accessToken", accessToken, options)
+      .json({ success: true});
+  } catch (error) {
+    throw new ApiError(
+      401,
+       "Refreshed AccessToken cannot be generated"
+    );
+  }
+});
+
+
+
+const logoutUser = asyncHandler(async (req, res) => {
+  await User.findByIdAndUpdate(
+    req.user._id,
+    {
+      $unset: { refreshToken: 1 },
+    },
+    {
+      new: true,
+    }
+  );
+
+  const options = {
+    httpOnly: true,
+    secure: true,
+  };
+
+  return res
+    .status(200)
+    .clearCookie("accessToken", options)
+    .clearCookie("refreshToken",options)
+    .json(new ApiResponse(200, {}, "User logged out successfully"));
+});
+
+
+export { signUpUser, loginUser,refreshAccessToken,logoutUser };
