@@ -14,9 +14,7 @@ ConnectDB()
         console.log("Event received:", data);
       });
 
-      CSPViolationReportBody.on("newItemPosted", (item) => {
-  console.log("New item received from server:", item);
-  });
+      
 
 
       client.on("disconnect", () => {

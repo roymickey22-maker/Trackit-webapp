@@ -7,7 +7,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asynchandler.js";
 import { uploadonCloudinary } from "../utils/cloudinary.js";
 import { Item } from "../models/Items.models.js";
-import {io} from "../socket.js"
+import { io } from "../socket.js";
 const options = {
   httpOnly: true,
   secure: true, // secure only in production
@@ -228,13 +228,12 @@ const postItem = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Location is required and must be a string");
   }
 
-if (
-  !dateFound ||
-  !/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(dateFound)
-) {
-  throw new ApiError(400, "Date is required and must be valid (YYYY-MM-DD)");
-}
-
+  if (
+    !dateFound ||
+    !/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(dateFound)
+  ) {
+    throw new ApiError(400, "Date is required and must be valid (YYYY-MM-DD)");
+  }
 
   if (!status || !["Available", "Claimed"].includes(status)) {
     throw new ApiError(400, "Status must be either 'Available' or 'Claimed'");
@@ -274,16 +273,77 @@ if (
     email,
     phone,
     status,
-    location:locationFound
+    location: locationFound,
   });
 
-     if (!createdItem) {
-  throw new ApiError(500, "Failed to create item");
-     }
-       io.emit("newItemPosted", createdItem);
+  if (!createdItem) {
+    throw new ApiError(500, "Failed to create item");
+  }
+  io.emit("newItemPosted", createdItem);
 
-      res.status(201).json(new ApiResponse(201,createdItem,'item has been injected in database'));
-
+  res
+    .status(201)
+    .json(
+      new ApiResponse(201, createdItem, "item has been injected in database")
+    );
 });
 
-export { signUpUser, loginUser, refreshAccessToken, logoutUser, postItem };
+const userPosts = asyncHandler(async (req, res) => {
+  const user = req.user;
+
+  const userData = await Item.aggregate([
+    { $match: { reportedBy: user._id } },
+    { $sort: { createdAt: -1 } },  // latest first
+    {
+      $project: {
+        email: 0,
+        reportedBy: 0,
+        __v: 0
+      }
+    },
+    {
+      $group: {
+        _id: "$type",
+        total: { $sum: 1 },
+        items: { $push: "$$ROOT" }
+      }
+    }
+  ]);
+
+  if (userData.length === 0) {
+    throw new ApiError(404, "No posts have been made by user");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, userData, "User posts have been retrieved"));
+});
+
+
+
+
+
+const deletePosts = asyncHandler(async (req, res) => {
+  const user = req.user;
+  const itemToDeleteId = req.query.itemId;  
+
+  if (!itemToDeleteId) {
+    return res.status(400).json(new ApiResponse(400, null, "Item ID is required"));
+  }
+
+  // Try deleting the item
+  const deletedItem = await Item.findByIdAndDelete(itemToDeleteId);
+
+  if (!deletedItem) {
+    return res.status(404).json(new ApiResponse(404, null, "Item not found"));
+  }
+
+  //  Notify all clients in real-time
+  io.emit("itemDeleted", deletedItem._id);
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, deletedItem, "Item deleted successfully"));
+});
+
+export { signUpUser, loginUser, refreshAccessToken, logoutUser, postItem,userPosts,deletePosts };

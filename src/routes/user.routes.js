@@ -6,7 +6,7 @@ import { verifyjwt } from "../middlewares/auth.middleware.js";
 import { refreshAccessToken } from "../controllers/user.controller.js";
 import { logoutUser } from "../controllers/user.controller.js";
 import {postItem } from "../controllers/user.controller.js";
-
+import { userPosts,deletePosts } from "../controllers/user.controller.js";
 // user router
 
 
@@ -24,6 +24,9 @@ router.route('/postItems').post(
   ]),
   postItem
 );
+
+router.route('/profile').get(verifyjwt,userPosts);
+router.route('/profile/delete').delete(verifyjwt,deletePosts);
 
 
 

@@ -2,6 +2,7 @@ import cookieParser from "cookie-parser";
 import express from "express";
 import cors from 'cors';
 import { userRouter } from "./routes/user.routes.js";
+import { itemRouter } from "./routes/itemsInfo.routes.js";
 const app = express();
 
 
@@ -14,5 +15,6 @@ const app = express();
 
 // routes declaration
   app.use('/api/v1/users',userRouter);
+  app.use('/api/v2',itemRouter);
 
 export {app}
