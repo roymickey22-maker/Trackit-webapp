@@ -6,7 +6,7 @@ import { verifyjwt } from "../middlewares/auth.middleware.js";
 import { refreshAccessToken } from "../controllers/user.controller.js";
 import { logoutUser } from "../controllers/user.controller.js";
 import {postItem } from "../controllers/user.controller.js";
-import { userPosts,deletePosts } from "../controllers/user.controller.js";
+import { userPosts,deletePosts,passwordReset,forgotPassword } from "../controllers/user.controller.js";
 // user router
 
 
@@ -14,6 +14,9 @@ router.route('/signUp').post(upload.none(),signUpUser)
 router.route('/login').post(upload.none(),loginUser);
 router.route('/auth/refreshAccessToken').post(refreshAccessToken);
 router.route('/logout').post(verifyjwt,logoutUser);
+router.route("/forgot-password").post(verifyjwt,forgotPassword);
+router.route('/password-reset').put(verifyjwt,upload.none(),passwordReset);
+
 router.route('/postItems').post(
   verifyjwt,
   upload.fields([

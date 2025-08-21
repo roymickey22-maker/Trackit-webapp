@@ -8,6 +8,10 @@ import { asyncHandler } from "../utils/asynchandler.js";
 import { uploadonCloudinary } from "../utils/cloudinary.js";
 import { Item } from "../models/Items.models.js";
 import { io } from "../socket.js";
+import { generateOtp } from "../utils/generateOtp.js";
+import { sendEmail } from "../utils/emails.js";
+import { Otp } from "../models/otp.js";
+
 const options = {
   httpOnly: true,
   secure: true, // secure only in production
@@ -293,21 +297,21 @@ const userPosts = asyncHandler(async (req, res) => {
 
   const userData = await Item.aggregate([
     { $match: { reportedBy: user._id } },
-    { $sort: { createdAt: -1 } },  // latest first
+    { $sort: { createdAt: -1 } }, // latest first
     {
       $project: {
         email: 0,
         reportedBy: 0,
-        __v: 0
-      }
+        __v: 0,
+      },
     },
     {
       $group: {
         _id: "$type",
         total: { $sum: 1 },
-        items: { $push: "$$ROOT" }
-      }
-    }
+        items: { $push: "$$ROOT" },
+      },
+    },
   ]);
 
   if (userData.length === 0) {
@@ -319,16 +323,14 @@ const userPosts = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, userData, "User posts have been retrieved"));
 });
 
-
-
-
-
 const deletePosts = asyncHandler(async (req, res) => {
   const user = req.user;
-  const itemToDeleteId = req.query.itemId;  
+  const itemToDeleteId = req.query.itemId;
 
   if (!itemToDeleteId) {
-    return res.status(400).json(new ApiResponse(400, null, "Item ID is required"));
+    return res
+      .status(400)
+      .json(new ApiResponse(400, null, "Item ID is required"));
   }
 
   // Try deleting the item
@@ -346,4 +348,62 @@ const deletePosts = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, deletedItem, "Item deleted successfully"));
 });
 
-export { signUpUser, loginUser, refreshAccessToken, logoutUser, postItem,userPosts,deletePosts };
+const forgotPassword = asyncHandler(async (req, res) => {
+  const user = req.user;
+  if (!user) {
+    throw new ApiError(401, "Unauthorized user");
+  }
+
+  const OTP = generateOtp();
+
+  await Otp.create({
+    userId: user._id,
+    otp: OTP,
+    expiresAt: new Date(Date.now() + 5 * 60 * 1000), // valid for 5 minutes
+  });
+
+  const detailsToSend = {
+    to: user.email,
+    subject: "This is the otp for your password reset",
+    text: `otp is ${OTP}`,
+  };
+  await sendEmail(detailsToSend);
+
+  res.status(200).json({ message: "OTP sent successfully" });
+});
+
+const passwordReset = asyncHandler(async (req, res) => {
+  const {otp, newPassword}= req.body;
+  const user = req.user;
+  if (!newPassword) {
+    throw new ApiError(400, "Passoword is required");
+  }
+
+  const validOtp = await Otp.findOne({ userId: user._id, otp });
+   if (!validOtp) {
+    throw new ApiError (400,'Invalid or expired OTP');
+   }
+  user.password = newPassword;
+
+  await user.save({ validateBeforeSave: false });
+
+  if (!user.isPasswordCorrect(newPassword)) {
+    throw new ApiError(500, "something happend while changing the password");
+  }
+
+  return res
+    .status(200)
+    .json({ message: "Password has been changed successfully" });
+});
+
+export {
+  signUpUser,
+  loginUser,
+  refreshAccessToken,
+  logoutUser,
+  postItem,
+  userPosts,
+  deletePosts,
+  passwordReset,
+  forgotPassword
+};
