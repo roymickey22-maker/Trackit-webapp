@@ -10,7 +10,9 @@ import { Item } from "../models/Items.models.js";
 import { io } from "../socket.js";
 import { generateOtp } from "../utils/generateOtp.js";
 import { sendEmail } from "../utils/emails.js";
-import { Otp } from "../models/otp.js";
+import { Otp } from "../models/otp.modles.js";
+import { EmailVerification } from "../models/EmailVerification.models.js";
+import crypto from "crypto";
 
 const options = {
   httpOnly: true,
@@ -58,17 +60,57 @@ const signUpUser = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Phone should have exactly 10 digits");
   }
 
-  const checkUser = await User.findOne({ email });
+  const checkUser = await User.findOne({ userEmail: email });
   if (checkUser) {
     throw new ApiError(409, "User already registered");
   }
 
-  const user = await User.create({
-    name,
-    email,
-    phone,
-    password,
+  const token = crypto.randomBytes(32).toString("hex");
+
+  // 3. Save email + credentials temporarily in EmailVerification collection
+  await EmailVerification.create({
+    userEmail: email,
+    token,
+    credentials: { name, password, phone },
+    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
   });
+
+  // 4. Construct verification link
+  const verificationLink = `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
+   console.log('The token is ',token);
+  // 5. Send verification email
+  await sendEmail({
+    to: email,
+    subject: "Verify Your Email",
+    text: `Click the link to verify your email: ${verificationLink}`,
+    html: `<p>Click <a href="${verificationLink}">here</a> to verify your email.</p>`,
+  });
+
+  // 6. Respond
+  res.status(200).json({
+    message: "Verification link sent. Check your email to complete signup.",
+  });
+});
+
+const verifyEmail = asyncHandler(async (req, res) => {
+  const { token } = req.body;
+
+  const record = await EmailVerification.findOne({ token });
+  if (!record || record.expiresAt < new Date()) {
+    throw new ApiError(400, "Invalid or expired verification link");
+  }
+
+  // Create the user in the main User collection
+  const user = await User.create({
+    name: record.credentials.name,
+    email: record.userEmail,
+    phone: record.credentials.phone,
+    password : record.credentials.password,
+    isVerified: true,
+  });
+
+  // Delete verification record
+  await EmailVerification.deleteOne({ token });
 
   const createdUser = await User.findById(user._id).select(
     "-password -refreshToken"
@@ -373,16 +415,16 @@ const forgotPassword = asyncHandler(async (req, res) => {
 });
 
 const passwordReset = asyncHandler(async (req, res) => {
-  const {otp, newPassword}= req.body;
+  const { otp, newPassword } = req.body;
   const user = req.user;
   if (!newPassword) {
     throw new ApiError(400, "Passoword is required");
   }
 
   const validOtp = await Otp.findOne({ userId: user._id, otp });
-   if (!validOtp) {
-    throw new ApiError (400,'Invalid or expired OTP');
-   }
+  if (!validOtp) {
+    throw new ApiError(400, "Invalid or expired OTP");
+  }
   user.password = newPassword;
 
   await user.save({ validateBeforeSave: false });
@@ -405,5 +447,6 @@ export {
   userPosts,
   deletePosts,
   passwordReset,
-  forgotPassword
+  forgotPassword,
+  verifyEmail,
 };

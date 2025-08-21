@@ -4,12 +4,11 @@ export const sendEmail = async (options) => {
   // 1. Create transporter
   let testAccount = await nodemailer.createTestAccount();
   const transporter = nodemailer.createTransport({
-  host: "smtp.ethereal.email",
-    port: 587,
-    secure: false, // true for 465, false for other ports
+ service: "gmail", // Gmail SMTP
     auth: {
-      user: testAccount.user, // generated ethereal user
-      pass: testAccount.pass, // generated ethereal password
+      user: process.env.EMAIL_USER, // your Gmail address
+      pass: process.env.EMAIL_PASS, // app password from Google
+
     },
   });
 
@@ -29,5 +28,5 @@ export const sendEmail = async (options) => {
 
   // //  This gives you the preview link
   // console.log("Preview URL:", nodemailer.getTestMessageUrl(info));
-
+  // console.log("Email sent:", info.response);
 };
