@@ -77,7 +77,7 @@ const signUpUser = asyncHandler(async (req, res) => {
 
   // 4. Construct verification link
   const verificationLink = `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
-   console.log('The token is ',token);
+  //  console.log('The token is ',token);
   // 5. Send verification email
   await sendEmail({
     to: email,

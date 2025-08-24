@@ -23,7 +23,7 @@ router.route("/auth/refreshAccessToken").post(refreshAccessToken);
 router.route("/logout").post(verifyjwt, logoutUser);
 router.route("/forgot-password").post(verifyjwt, forgotPassword);
 router.route("/password-reset").put(verifyjwt, upload.none(), passwordReset);
-router.route("/verify-Email").post(verifyEmail)
+router.route("/verify-email").post(verifyEmail)
 router.route("/postItems").post(
   verifyjwt,
   upload.fields([
