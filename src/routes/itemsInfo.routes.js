@@ -6,10 +6,10 @@ import { verifyjwt } from "../middlewares/auth.middleware.js";
 
 
 // routes for Items info 
-router.route('/lost-items').get(verifyjwt,lostItems);
-router.route('/found-items').get(verifyjwt,foundItems);
-router.route('/lost-items/:category').get(verifyjwt,lostItemCategory);
-router.route('/found-items/:category').get(verifyjwt,foundItemCategory);
+router.route('/lost-items').get(lostItems);
+router.route('/found-items').get(foundItems);
+router.route('/lost-items/:category').get(lostItemCategory);
+router.route('/found-items/:category').get(lostItemCategory);
 
 
 

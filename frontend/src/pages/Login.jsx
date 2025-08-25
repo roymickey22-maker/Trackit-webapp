@@ -50,7 +50,10 @@ export default function Login() {
 
     try {
       await login(formData);
-      navigate(from, { replace: true });
+      // Small delay to ensure state is updated
+      setTimeout(() => {
+        navigate(from, { replace: true });
+      }, 100);
     } catch (err) {
       setFormError(err.message || 'Login failed');
     }

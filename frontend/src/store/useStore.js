@@ -25,12 +25,15 @@ const useStore = create(
 
       // Auth actions
       setAuth: (user, token) => {
-        localStorage.setItem('token', token);
+        if (token) {
+          localStorage.setItem('token', token);
+        }
         set({ user, token, isAuthenticated: true });
       },
 
       logout: () => {
         localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
         set({ user: null, token: null, isAuthenticated: false });
       },
 

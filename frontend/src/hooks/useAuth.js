@@ -6,12 +6,13 @@ export default function useAuth() {
   const { user, token, isAuthenticated, setAuth, logout, setLoading, setError } = useStore();
 
   useEffect(() => {
-    if (token && !user) {
+    const storedToken = localStorage.getItem('token');
+    if (storedToken && !user) {
       // Try to get user profile if we have token but no user data
       authService.getProfile()
         .then(response => {
           if (response.success && response.data) {
-            setAuth(response.data, token);
+            setAuth(response.data, storedToken);
           }
         })
         .catch(() => {
@@ -19,7 +20,6 @@ export default function useAuth() {
           logout();
         });
     }
-  }, [token, user, setAuth, logout]);
 
   const login = async (credentials) => {
     try {

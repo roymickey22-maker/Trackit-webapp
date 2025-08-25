@@ -63,7 +63,7 @@ api.interceptors.response.use(
         if (!refreshToken) throw new Error("No refresh token available");
 
         // Call refresh endpoint
-        const resp = await axios.post(routeMap.auth.refreshToken || `${API_BASE}/api/v1/users/auth/refreshAccessToken`, {}, { withCredentials: true });
+        const resp = await axios.post(`${API_BASE}/api/v1/users/auth/refreshAccessToken`, {}, { withCredentials: true });
         const newAccessToken = resp.data?.data?.accessToken || resp.data?.accessToken;
 
         if (newAccessToken) {

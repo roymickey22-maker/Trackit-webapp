@@ -76,7 +76,7 @@ const signUpUser = asyncHandler(async (req, res) => {
   });
 
   // 4. Construct verification link
-  const verificationLink = `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
+  const verificationLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/verify-email?token=${token}`;
   //  console.log('The token is ',token);
   // 5. Send verification email
   await sendEmail({
@@ -105,7 +105,7 @@ const verifyEmail = asyncHandler(async (req, res) => {
     name: record.credentials.name,
     email: record.userEmail,
     phone: record.credentials.phone,
-    password : record.credentials.password,
+    password: record.credentials.password,
     isVerified: true,
   });
 

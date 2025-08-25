@@ -15,6 +15,7 @@ import NewReport from './pages/NewReport';
 import MyReports from './pages/MyReports';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import VerifyEmail from './pages/VerifyEmail';
 import Profile from './pages/Profile';
 import AdminPanel from './pages/AdminPanel';
 
@@ -47,6 +48,7 @@ function App() {
             <Route path="/item/:id" element={<ItemDetail />} />
             <Route path="/auth/login" element={<Login />} />
             <Route path="/auth/register" element={<Register />} />
+            <Route path="/verify-email" element={<VerifyEmail />} />
             
             {/* Protected Routes */}
             <Route path="/report/new" element={

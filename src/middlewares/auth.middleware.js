@@ -8,7 +8,7 @@ const verifyjwt = asyncHandler (async (req,res,next)=>{
     
     try {
            // first look for the refershTOken in the cookie
-           const token = req.cookies?.accessToken ;
+           const token = req.cookies?.accessToken || req.headers.authorization?.replace('Bearer ', '');
            if(!token){
             throw new ApiError(401,'Unauthorized request')
            }
