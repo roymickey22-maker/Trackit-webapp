@@ -20,6 +20,8 @@ export default function useAuth() {
           logout();
         });
     }
+  }
+  )
 
   const login = async (credentials) => {
     try {
