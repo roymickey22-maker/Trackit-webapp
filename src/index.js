@@ -1,5 +1,5 @@
 import dotenv from "dotenv";
-import { io,server } from "./socket.js";
+import { io, server } from "./socket.js";
 import { ConnectDB } from "./db/index.js";
 
 dotenv.config({ path: "../.env" });                                   
