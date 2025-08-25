@@ -1,4 +1,4 @@
-// frontend/src/hooks/useSocket.js
+// BoltPatch: Enhanced socket hook with token auth and better error handling
 import { useEffect } from "react";
 import { io } from "socket.io-client";
 import useStore from "../store/useStore";
@@ -8,9 +8,18 @@ let socket;
 
 export default function useSocket() {
   const addNotification = useStore((s) => s.addNotification);
+  
   useEffect(() => {
+    const token = localStorage.getItem("token");
     const apiBase = routeMap.socket || window.location.origin;
-    socket = io(apiBase, { transports: ["websocket","polling"] });
+
+    socket = io(apiBase, {
+      transports: ["websocket", "polling"],
+      auth: { token },
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000
+    });
 
     socket.on("connect", () => {
       console.log("socket connected", socket.id);
@@ -21,7 +30,7 @@ export default function useSocket() {
         id: Date.now(),
         type: 'new_item',
         title: 'New Item Posted',
-        message: `A new ${payload.type.toLowerCase()} item has been reported: ${payload.itemName}`,
+        message: `A new ${payload.type?.toLowerCase()} item has been reported: ${payload.itemName}`,
         timestamp: new Date().toISOString()
       });
     });
@@ -36,6 +45,28 @@ export default function useSocket() {
       });
     });
 
+    socket.on("itemUpdated", (payload) => {
+      addNotification({
+        id: Date.now(),
+        type: 'item_updated',
+        title: 'Item Updated',
+        message: `An item has been updated: ${payload.itemName || 'Unknown item'}`,
+        timestamp: new Date().toISOString()
+      });
+    });
+
+    socket.on("notification", (payload) => {
+      addNotification({
+        id: Date.now(),
+        ...payload,
+        timestamp: new Date().toISOString()
+      });
+    });
+
+    socket.on("connect_error", (err) => {
+      console.warn("socket connect_error", err.message);
+    });
+
     socket.on("disconnect", () => {
       console.log("socket disconnected");
     });
@@ -44,5 +75,6 @@ export default function useSocket() {
       if (socket) socket.disconnect();
     };
   }, [addNotification]);
+  
   return socket;
 }

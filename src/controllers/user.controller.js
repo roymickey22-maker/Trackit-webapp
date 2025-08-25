@@ -7,7 +7,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asynchandler.js";
 import { uploadonCloudinary } from "../utils/cloudinary.js";
 import { Item } from "../models/Items.models.js";
-import { io } from "../socket.js";
+import { notifyItemCreated, notifyItemDeleted } from "../utils/notify.js";
 import { generateOtp } from "../utils/generateOtp.js";
 import { sendEmail } from "../utils/emails.js";
 import { Otp } from "../models/otp.modles.js";
@@ -325,7 +325,13 @@ const postItem = asyncHandler(async (req, res) => {
   if (!createdItem) {
     throw new ApiError(500, "Failed to create item");
   }
-  io.emit("newItemPosted", createdItem);
+  
+  // BoltPatch: Use notify utility for better error handling
+  try {
+    notifyItemCreated(createdItem);
+  } catch (err) {
+    console.warn('Failed to emit new item notification:', err.message);
+  }
 
   res
     .status(201)
@@ -382,8 +388,12 @@ const deletePosts = asyncHandler(async (req, res) => {
     return res.status(404).json(new ApiResponse(404, null, "Item not found"));
   }
 
-  //  Notify all clients in real-time
-  io.emit("itemDeleted", deletedItem._id);
+  // BoltPatch: Use notify utility for better error handling
+  try {
+    notifyItemDeleted(deletedItem._id);
+  } catch (err) {
+    console.warn('Failed to emit delete notification:', err.message);
+  }
 
   return res
     .status(200)
