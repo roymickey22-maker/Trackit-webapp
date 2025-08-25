@@ -1,0 +1,39 @@
+{
+  "name": "trackit-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.14.1",
+    "axios": "^1.4.0",
+    "socket.io-client": "^4.7.2",
+    "@splinetool/react-spline": "^1.1.0",
+    "framer-motion": "^10.12.16",
+    "zustand": "^4.4.1",
+    "react-hook-form": "^7.46.0",
+    "@hookform/resolvers": "^3.3.0",
+    "yup": "^1.2.0",
+    "react-infinite-scroll-component": "^6.1.0",
+    "react-dropzone": "^14.2.3",
+    "react-leaflet": "^4.3.1",
+    "leaflet": "^1.9.4",
+    "recharts": "^2.5.0",
+    "lucide-react": "^0.275.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.15",
+    "@types/react-dom": "^18.2.7",
+    "@vitejs/plugin-react": "^4.0.3",
+    "vite": "^5.0.0",
+    "tailwindcss": "^3.3.0",
+    "postcss": "^8.4.27",
+    "autoprefixer": "^10.4.14"
+  }
+}
